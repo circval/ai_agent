@@ -6,6 +6,7 @@ from functions.get_files_info import schema_get_files_info
 from functions.get_file_content import schema_get_file_content
 from functions.run_python_file import schema_run_python_file
 from functions.write_file import schema_write_file
+from call_function import call_function, available_functions
 
 def main():
     load_dotenv()
@@ -70,12 +71,20 @@ def generate_content(client, messages, verbose):
         print("Response tokens:", response.usage_metadata.candidates_token_count)
 
     if response.function_calls != None and isinstance(response.function_calls, list):
+        content_response = []
         for function_call_part in response.function_calls:            
-            print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+            function_call_result = call_function(function_call_part, verbose=verbose)
+            if (
+                not function_call_result.parts
+                or not function_call_result.parts[0].function_response
+            ):
+                raise Exception("Fatal Error")
+            if verbose == True:
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+            content_response.append(function_call_result.parts[0].function_response.response)
     else:
         print("Response:")
         print(response.text)
-
 
 if __name__ == "__main__":
     main()
